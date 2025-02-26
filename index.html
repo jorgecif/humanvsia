@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Juego de Clasificación de Imágenes</title>
+  <title>Humano vs IA</title>
   <style>
     /* Estilos generales */
     body {
@@ -15,7 +15,7 @@
       align-items: center;
       min-height: 100vh;
     }
-    /* Contenedor principal: ancho aumentado y sin overflow oculto */
+    /* Contenedor principal */
     #game-container {
       width: 440px;
       background: #fff;
@@ -24,7 +24,7 @@
       overflow: visible;
       padding-bottom: 20px;
     }
-    /* Encabezado con título e instrucciones */
+    /* Encabezado */
     #header {
       text-align: center;
       padding: 10px;
@@ -41,13 +41,13 @@
       font-size: 16px;
       margin: 5px 0 15px;
     }
-    /* Área de la imagen y etiquetas externas */
+    /* Área de la imagen y botones laterales */
     #card-area {
       position: relative;
       width: 320px;
       height: 420px;
       margin: 20px auto 0;
-      overflow: visible; /* Permite que se vean elementos posicionados fuera */
+      overflow: visible;
     }
     /* Contenedor de la carta */
     #card-container {
@@ -75,24 +75,56 @@
       border-radius: 10px;
       object-fit: cover;
     }
-    /* Etiquetas laterales posicionadas fuera del recuadro de imagen */
-    .side-label {
+    /* Botones laterales con ícono y tooltip */
+    .side-button {
       position: absolute;
       top: 50%;
-      transform: translateY(-50%);
-      font-size: 16px;
-      font-weight: bold;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: none;
+      background: #fda085;
       color: #fff;
-      background: rgba(0, 0, 0, 0.7);
-      padding: 5px 10px;
-      border-radius: 5px;
+      font-size: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s ease, background-color 0.2s ease;
       z-index: 10;
     }
-    #label-left {
-      left: -50px;
+    #button-left {
+      left: -80px;
     }
-    #label-right {
-      right: -50px;
+    #button-right {
+      right: -80px;
+    }
+    .side-button:hover {
+      transform: translateY(-50%) scale(1.1);
+      background-color: #f06;
+    }
+    .side-button:active {
+      transform: translateY(-50%) scale(0.95);
+    }
+    /* Tooltip: texto que aparece al hacer hover */
+    .side-button::after {
+      content: attr(data-label);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-bottom: 5px;
+      background: rgba(0, 0, 0, 0.7);
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      white-space: nowrap;
+    }
+    .side-button:hover::after {
+      opacity: 1;
     }
     /* Área inferior: puntaje y controles */
     #info-container {
@@ -127,14 +159,14 @@
   <div id="game-container">
     <!-- Encabezado -->
     <div id="header">
-      <h1 id="title">¿IA o Humano?</h1>
+      <h1 id="title">Humano vs IA</h1>
       <p id="top-instructions">Desliza a la izquierda para IA, a la derecha para Humano</p>
     </div>
-    <!-- Área de la imagen y etiquetas externas -->
+    <!-- Área de la imagen y botones laterales -->
     <div id="card-area">
       <div id="card-container"></div>
-      <div id="label-left" class="side-label">IA</div>
-      <div id="label-right" class="side-label">Humano</div>
+      <button id="button-left" class="side-button" data-label="IA">🤖</button>
+      <button id="button-right" class="side-button" data-label="Humano">👤</button>
     </div>
     <!-- Área inferior: puntaje y controles -->
     <div id="info-container">
@@ -204,7 +236,7 @@
       loadNextCard();
     }
 
-    // Carga la siguiente carta en la pila
+    // Carga la siguiente carta
     function loadNextCard() {
       if (currentIndex >= currentCards.length) {
         finalScoreElement.textContent = "Juego terminado. Puntaje final: " + score + " de " + currentCards.length;
@@ -216,7 +248,7 @@
       card.className = "card";
       card.innerHTML = '<img src="' + cardData.img + '" alt="Imagen de arte">';
       card.style.transform = "translateX(0px) rotate(0deg)";
-      // Agrega eventos para detectar el swipe
+      // Eventos para swipe
       card.addEventListener("pointerdown", pointerDown);
       card.addEventListener("pointermove", pointerMove);
       card.addEventListener("pointerup", pointerUp);
@@ -226,28 +258,37 @@
       currentCard = card;
     }
 
-    // Cuando se inicia el arrastre
+    // Función para clasificación vía botón
+    function buttonSelect(direction) {
+      if (!currentCard) return;
+      currentCard.style.transition = "transform 0.5s ease-out";
+      const rotation = direction === "human" ? 20 : -20;
+      const endX = direction === "human" ? window.innerWidth : -window.innerWidth;
+      currentCard.style.transform = "translateX(" + endX + "px) rotate(" + rotation + "deg)";
+      setTimeout(() => {
+        checkAnswer(direction);
+        currentIndex++;
+        loadNextCard();
+      }, 500);
+    }
+
+    // Funciones para swipe
     function pointerDown(event) {
       startX = event.clientX;
       isDragging = true;
       currentCard.style.transition = "none";
     }
-
-    // Mientras se arrastra, mueve la carta y rota ligeramente
     function pointerMove(event) {
       if (!isDragging) return;
       const deltaX = event.clientX - startX;
       currentCard.style.transform = "translateX(" + deltaX + "px) rotate(" + (deltaX / 10) + "deg)";
     }
-
-    // Al finalizar el arrastre se determina si fue un swipe válido o se regresa al centro
     function pointerUp(event) {
       if (!isDragging) return;
       isDragging = false;
       const deltaX = event.clientX - startX;
-      const threshold = 100; // Umbral para considerar un swipe
+      const threshold = 100;
       if (deltaX > threshold || deltaX < -threshold) {
-        // Swipe detectado: derecha => "human", izquierda => "ai"
         const direction = deltaX > 0 ? "human" : "ai";
         currentCard.style.transition = "transform 0.5s ease-out";
         const endX = deltaX > 0 ? window.innerWidth : -window.innerWidth;
@@ -272,8 +313,17 @@
       }
     }
 
+    // Eventos para los botones laterales
+    document.getElementById("button-left").addEventListener("click", function() {
+      buttonSelect("ai");
+    });
+    document.getElementById("button-right").addEventListener("click", function() {
+      buttonSelect("human");
+    });
+
     restartBtn.addEventListener("click", initGame);
     window.onload = initGame;
   </script>
 </body>
 </html>
+
